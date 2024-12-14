@@ -1,6 +1,11 @@
 ﻿using FluentValidation.AspNetCore;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using SurveyBasket.Api.Authentication;
+using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
+using System.Text;
 
 namespace SurveyBasket.Api;
 
@@ -9,6 +14,7 @@ public static class DependencyInjection
     public static IServiceCollection AddDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
+        services.AddAuthconfig();
 
         services
             .AddSwaggerServices()
@@ -18,11 +24,12 @@ public static class DependencyInjection
         services.AddDatabaseConfig(configuration);
 
         services.AddScoped<IPollService, PollService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
 
-    public static IServiceCollection AddSwaggerServices(this IServiceCollection services)
+    private static IServiceCollection AddSwaggerServices(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
@@ -30,7 +37,7 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddMapsterConfig(this IServiceCollection services)
+    private static IServiceCollection AddMapsterConfig(this IServiceCollection services)
     {
         var mappingConfig = TypeAdapterConfig.GlobalSettings;
         mappingConfig.Scan(Assembly.GetExecutingAssembly());
@@ -39,7 +46,7 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddFluentValidationConfig(this IServiceCollection services)
+    private static IServiceCollection AddFluentValidationConfig(this IServiceCollection services)
     {
         services
             .AddFluentValidationAutoValidation()
@@ -48,11 +55,41 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddDatabaseConfig(this IServiceCollection services, IConfiguration configuration)
+    private static IServiceCollection AddDatabaseConfig(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
         throw new InvalidOperationException("Connection String 'DefaultConnection' not found.");
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+
+        return services;
+    }
+
+    private static IServiceCollection AddAuthconfig(this IServiceCollection services)
+    {
+        services.AddSingleton<IJwtProvider, JwtProvider>();
+
+        services.AddIdentity<ApplicationUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(o =>
+        {
+            o.SaveToken = true;
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TSv39eofkO619YX3J4Y634DEiwCvEGFm")),
+                ValidIssuer = "SurveyBasketApp",
+                ValidAudience = "SurveyBasketApp users",
+            };
+        });
 
         return services;
     }
