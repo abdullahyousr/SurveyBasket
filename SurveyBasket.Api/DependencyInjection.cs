@@ -6,7 +6,7 @@ namespace SurveyBasket.Api;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddDependencies(this IServiceCollection services)
+    public static IServiceCollection AddDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
 
@@ -14,6 +14,8 @@ public static class DependencyInjection
             .AddSwaggerServices()
             .AddMapsterConfig()
             .AddFluentValidationConfig();
+
+        services.AddDatabaseConfig(configuration);
 
         services.AddScoped<IPollService, PollService>();
 
@@ -42,6 +44,15 @@ public static class DependencyInjection
         services
             .AddFluentValidationAutoValidation()
             .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+        return services;
+    }
+
+    public static IServiceCollection AddDatabaseConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
+        throw new InvalidOperationException("Connection String 'DefaultConnection' not found.");
+        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
         return services;
     }
