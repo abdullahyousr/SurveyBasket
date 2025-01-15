@@ -6,6 +6,8 @@ using SurveyBasket.Api.Authentication;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
+using SurveyBasket.Api.Settings;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace SurveyBasket.Api;
 
@@ -38,6 +40,7 @@ public static class DependencyInjection
         services.AddDatabaseConfig(configuration);
 
         services.AddScoped<IPollService, PollService>();
+        services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IQuestionService, QuestionService>();
         services.AddScoped<IVoteService, VoteService>();
@@ -48,6 +51,11 @@ public static class DependencyInjection
         services.AddExceptionHandler<GlobalExceptionHandler>();
         
         services.AddProblemDetails();
+
+        services.AddHttpContextAccessor();
+
+        services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+
         return services;
     }
 
@@ -91,7 +99,8 @@ public static class DependencyInjection
         services.AddSingleton<IJwtProvider, JwtProvider>();
 
         services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         //services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddOptions<JwtOptions>()
@@ -119,6 +128,13 @@ public static class DependencyInjection
                 ValidIssuer = jwtSettings?.Issure,
                 ValidAudience = jwtSettings?.Audience,
             };
+        });
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Password.RequiredLength = 6;
+            options.SignIn.RequireConfirmedEmail = true;
+            options.User.RequireUniqueEmail = true;
         });
 
         return services;

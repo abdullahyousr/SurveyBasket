@@ -1,8 +1,8 @@
 ﻿namespace SurveyBasket.Api.Contracts.Authentication;
 
-public class AuthRequestValidator : AbstractValidator<AuthRequest>
+public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
-    public AuthRequestValidator()
+    public LoginRequestValidator()
     {
         RuleFor(x => x.Email)
             .NotEmpty()
