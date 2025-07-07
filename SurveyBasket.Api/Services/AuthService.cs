@@ -1,5 +1,5 @@
 ﻿
-using Microsoft.AspNetCore.Http;
+using Hangfire;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
@@ -7,7 +7,6 @@ using SurveyBasket.Api.Authentication;
 using SurveyBasket.Api.Helpers;
 using System.Security.Cryptography;
 using System.Text;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace SurveyBasket.Api.Services;
 
@@ -203,9 +202,10 @@ public class AuthService(
             new Dictionary<string, string>
             {
                 {"{{name}}", user.FirstName},
-                    {"{{action_url}}", $"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
+                {"{{action_url}}", $"{origin}/auth/emailConfirmation?userId={user.Id}&code={code}" }
             });
-        await _emailSender.SendEmailAsync(user.Email!, "Survey Basket: Email Confirmation", emailBody);
+        BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "Survey Basket: Email Confirmation", emailBody));
+        await Task.CompletedTask;
     }
 
 }
