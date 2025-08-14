@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using SurveyBasket.Api.Abstractions;
-
-namespace SurveyBasket.Api.Controllers;
+﻿namespace SurveyBasket.Api.Controllers;
 [Route("[controller]")]
 [ApiController]
 public class AuthController(IAuthService authService) : ControllerBase
@@ -69,6 +65,28 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> ResendConfirmationEmail([FromBody] ResendConfirmationEmailRequest request)
     {
         var result = await _authService.ResendConfirmationEmailAsync(request);
+
+        return result.IsSuccess
+                    ? Ok()
+                    : result.ToProblem();
+    }
+
+    [HttpPost]
+    [Route("forget-password")]
+    public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordRequest request)
+    {
+        var result = await _authService.SendResetPasswordCodeAsync(request.Email);
+
+        return result.IsSuccess
+                    ? Ok()
+                    : result.ToProblem();
+    }
+
+    [HttpPost]
+    [Route("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
 
         return result.IsSuccess
                     ? Ok()
