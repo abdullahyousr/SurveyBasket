@@ -4,13 +4,13 @@
 namespace SurveyBasket.Api.Controllers;
 [Route("api/polls/{pollId}/[controller]")]
 [ApiController]
-[Authorize]
 public class QuestionsController(IQuestionService questionService) : ControllerBase
 {
     private readonly IQuestionService _questionService = questionService;
 
     [HttpGet]
     [Route("")]
+    [HasPermisssion(Permissions.GetQuestions)]
     public async Task<IActionResult> GetAll([FromRoute]int pollId, CancellationToken cancellationToken)
     {
         var questionsResult = await _questionService.GetAllAsync(pollId, cancellationToken);
@@ -21,6 +21,7 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
 
     [HttpGet]
     [Route("{questionId}")]
+    [HasPermisssion(Permissions.GetQuestions)]
     public async Task<IActionResult> Get([FromRoute] int pollId, [FromRoute]int questionId, CancellationToken cancellationToken)
     {
         var questionResult = await _questionService.GetAsync(pollId, questionId, cancellationToken);
@@ -31,6 +32,7 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
 
     [HttpPost]
     [Route("")]
+    [HasPermisssion(Permissions.AddQuestions)]
     public async Task<IActionResult> Add([FromRoute]int pollId, [FromBody] QuestionRequest questionRequest, CancellationToken cancellationToken)
     { 
         var questionResult = await _questionService.AddAsync(pollId, questionRequest, cancellationToken);
@@ -43,6 +45,7 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
 
     [HttpPut]
     [Route("{requestId}")]
+    [HasPermisssion(Permissions.UpdateQuestions)]
     public async Task<IActionResult> Update([FromRoute] int pollId,[FromRoute] int requestId, [FromBody] QuestionRequest questionRequest, CancellationToken cancellationToken)
     {
         var questionResult = await _questionService.UpdateAsync(pollId, requestId, questionRequest, cancellationToken);
@@ -54,6 +57,7 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
 
     [HttpPut]
     [Route("{id}/ToggleStatus")]
+    [HasPermisssion(Permissions.UpdateQuestions)]
     public async Task<IActionResult> ToggleStatus([FromRoute] int pollId, [FromRoute] int id, CancellationToken cancellationToken)
     {
         var questionResult = await _questionService.ToggleStatusAsync(pollId, id, cancellationToken);

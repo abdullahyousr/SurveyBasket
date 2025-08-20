@@ -7,6 +7,7 @@ using SurveyBasket.Api.Authentication;
 using SurveyBasket.Api.Helpers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace SurveyBasket.Api.Services;
 
@@ -16,7 +17,8 @@ public class AuthService(
     IJwtProvider jwtProvider,
     ILogger<AuthService> logger,
     IEmailSender emailSender,
-    IHttpContextAccessor httpContextAccessor) : IAuthService
+    IHttpContextAccessor httpContextAccessor,
+    ApplicationDbContext context) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -24,6 +26,7 @@ public class AuthService(
     private readonly ILogger<AuthService> _logger = logger;
     private readonly IEmailSender _emailSender = emailSender;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly ApplicationDbContext _context = context;
     private readonly int _refreshTokenExpiryDays = 14;
 
     public async Task<Result<AuthResponce>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
@@ -39,8 +42,10 @@ public class AuthService(
         var result = await _signInManager.PasswordSignInAsync(user, password,false, false);
         if(result.Succeeded)
         {
+
+            var (userRoles , userPermissions) = await GetUserRolesAndPermissions(user, cancellationToken);
             //Generate JWT Token
-            var (token, expiresIn) = _jwtProvider.GenerateToken(user);
+            var (token, expiresIn) = _jwtProvider.GenerateToken(user, userRoles, userPermissions);
 
             //Generate RefreshToken Token
             var refreshToken = GenerateRefreshToken();
@@ -80,7 +85,9 @@ public class AuthService(
 
         userRefreshToken.RevokedOn = DateTime.UtcNow;
         //Generate JWT Token
-        var (newtoken, expiresIn) = _jwtProvider.GenerateToken(user);
+        var (userRoles, userPermissions) = await GetUserRolesAndPermissions(user, cancellationToken);
+
+        var (newtoken, expiresIn) = _jwtProvider.GenerateToken(user, userRoles, userPermissions);
 
         //Generate RefreshToken Token
         var newRefreshToken = GenerateRefreshToken();
@@ -167,7 +174,10 @@ public class AuthService(
         var result = await _userManager.ConfirmEmailAsync(user, code);
 
         if (result.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(user, DefaultRoles.Member);
             return Result.Success();
+        }
         var error = result.Errors.First();
         return Result.Failure(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
     }
@@ -267,6 +277,30 @@ public class AuthService(
             });
         BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "Survey Basket: Change Password", emailBody));
         await Task.CompletedTask;
+    }
+    private async Task<(IEnumerable<string> roles, IEnumerable<string> permssions)> GetUserRolesAndPermissions(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var userRoles = await _userManager.GetRolesAsync(user);
+        //cc await _context.Roles
+        //    .Join(_context.RoleClaims,
+        //    role => role.Id,
+        //    claim => claim.RoleId,
+        //    (role, claim) => new { role, claim }
+        //    )
+        //    .Where(x => userRoles.Contains(x.role.Name!))
+        //    .Select(x => x.claim.ClaimValue!)
+        //    .Distinct()
+        //    .ToListAsync(cancellationToken);
+        var userPermissions = await (from role in _context.Roles
+                                    join claim in _context.RoleClaims 
+                                    on role.Id equals claim.RoleId
+                                    where userRoles.Contains(role.Name!)
+                                    select claim.ClaimValue!)
+                                    .Distinct()
+                                    .ToListAsync(cancellationToken);
+
+
+        return (userRoles, userPermissions);
     }
 
 }
