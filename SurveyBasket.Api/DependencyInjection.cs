@@ -9,6 +9,7 @@ using System.Text;
 using SurveyBasket.Api.Settings;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Hangfire;
+using SurveyBasket.Api.Health;
 
 namespace SurveyBasket.Api;
 
@@ -61,6 +62,11 @@ public static class DependencyInjection
         services.AddBackgroundJobsConfig(configuration);
 
         services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+
+        services.AddHealthChecks()
+            .AddSqlServer(name: "database", connectionString: configuration.GetConnectionString("DefaultConnection")!)
+            .AddHangfire(options => { options.MinimumAvailableServers = 1; })
+            .AddCheck<MailProviderHealthCheck>(name:"mail service");
 
         return services;
     }
