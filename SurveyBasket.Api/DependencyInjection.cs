@@ -1,7 +1,6 @@
 ﻿using FluentValidation.AspNetCore;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using SurveyBasket.Api.Authentication;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
@@ -10,6 +9,8 @@ using SurveyBasket.Api.Settings;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Hangfire;
 using SurveyBasket.Api.Health;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 namespace SurveyBasket.Api;
 
@@ -67,6 +68,79 @@ public static class DependencyInjection
             .AddSqlServer(name: "database", connectionString: configuration.GetConnectionString("DefaultConnection")!)
             .AddHangfire(options => { options.MinimumAvailableServers = 1; })
             .AddCheck<MailProviderHealthCheck>(name:"mail service");
+        services.AddRateLimitingServices();
+
+        return services;
+    }
+
+    private static IServiceCollection AddRateLimitingServices(this IServiceCollection services)
+    {
+        services.AddRateLimiter(rateLimiterOptions =>
+        {
+            rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            // ip address limit
+            rateLimiterOptions.AddPolicy(RateLimiters.IpLimit, httpCcontext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpCcontext.Connection.RemoteIpAddress?.ToString(),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 2,
+                        Window = TimeSpan.FromSeconds(20),
+                    }
+                    )
+            );
+
+            // user limit
+            rateLimiterOptions.AddPolicy(RateLimiters.UserLimiter, httpCcontext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpCcontext.User.GetUserId(),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 2,
+                        Window = TimeSpan.FromSeconds(20),
+                    }
+                    )
+            );
+            // Concurrent Limit 
+            rateLimiterOptions.AddConcurrencyLimiter(RateLimiters.Concurrency, options =>
+            {
+                options.PermitLimit = 10;
+                options.QueueLimit = 5;
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+
+            // Token Bucket Limit
+            //rateLimiterOptions.AddTokenBucketLimiter("token", Options =>
+            //{
+            //    Options.TokenLimit = 2;
+            //    Options.QueueLimit = 1;
+            //    Options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            //    Options.ReplenishmentPeriod = TimeSpan.FromSeconds(30);
+            //    Options.TokensPerPeriod = 2;
+            //    Options.AutoReplenishment = true;
+            //});
+
+            // Fixed Window Limit
+            //rateLimiterOptions.AddFixedWindowLimiter("fixed", Options =>
+            //{
+            //    Options.PermitLimit = 5;
+            //    Options.QueueLimit = 1;
+            //    Options.Window = TimeSpan.FromSeconds(20);
+            //    Options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            //});
+
+            // Sliding Window Limit
+            //rateLimiterOptions.AddSlidingWindowLimiter("sliding", Options =>
+            //{
+            //    Options.PermitLimit = 2;
+            //    Options.QueueLimit = 1;
+            //    Options.SegmentsPerWindow = 2;
+            //    Options.Window = TimeSpan.FromSeconds(20);
+            //    Options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            //});
+            // IP Address Limiter
+        }
+        );
 
         return services;
     }

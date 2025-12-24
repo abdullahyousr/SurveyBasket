@@ -1,15 +1,18 @@
 ﻿
+using Microsoft.AspNetCore.RateLimiting;
 using SurveyBasket.Api.Contracts.Users;
 
 namespace SurveyBasket.Api.Controllers;
 [Route("me")]
 [ApiController]
 [Authorize]
+//[EnableRateLimiting("iplimit")]
 public class AccountController(IUserService userService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
 
     [HttpGet("")]
+    //[EnableRateLimiting("sliding")]
     public async Task<IActionResult> Info()
     {
         var result = await _userService.GetUserProfileAsync(User.GetUserId()!);
