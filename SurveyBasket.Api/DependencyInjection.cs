@@ -11,6 +11,7 @@ using Hangfire;
 using SurveyBasket.Api.Health;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Asp.Versioning;
 
 namespace SurveyBasket.Api;
 
@@ -68,12 +69,28 @@ public static class DependencyInjection
             .AddSqlServer(name: "database", connectionString: configuration.GetConnectionString("DefaultConnection")!)
             .AddHangfire(options => { options.MinimumAvailableServers = 1; })
             .AddCheck<MailProviderHealthCheck>(name:"mail service");
-        services.AddRateLimitingServices();
+        
+        services.AddRateLimitingConfig();
+
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new HeaderApiVersionReader("x-api-version");
+            options.ApiVersionReader = new MediaTypeApiVersionReader("api-version");
+            //options.ApiVersionReader = new QueryStringApiVersionReader("api-version");
+            //options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddApiExplorer(options =>
+        {
+           options.GroupNameFormat = "'v'V";
+           options.SubstituteApiVersionInUrl = true;
+        });
 
         return services;
     }
 
-    private static IServiceCollection AddRateLimitingServices(this IServiceCollection services)
+    private static IServiceCollection AddRateLimitingConfig(this IServiceCollection services)
     {
         services.AddRateLimiter(rateLimiterOptions =>
         {

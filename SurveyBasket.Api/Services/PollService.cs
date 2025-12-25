@@ -3,7 +3,7 @@
 namespace SurveyBasket.Api.Services;
 
 public class PollService(ApplicationDbContext context,
-    INotificationService notificationService    ) : IPollService
+    INotificationService notificationService) : IPollService
 {
     private readonly ApplicationDbContext _context = context;
     private readonly INotificationService _notificationService = notificationService;
@@ -14,19 +14,29 @@ public class PollService(ApplicationDbContext context,
                     .ProjectToType<PollResponce>()
                     .ToListAsync(cancellationToken);
 
-    public async Task<IEnumerable<PollResponce>> GetCurrentAsync(CancellationToken cancellationToken = default)
-        => await _context.Polls
-                    .Where(p => p.IsPublished &&  p.StartsAt <= DateOnly.FromDateTime(DateTime.UtcNow) && p.EndsAt >= DateOnly.FromDateTime(DateTime.UtcNow))
-                    .AsNoTracking()
+    public async Task<IEnumerable<PollResponce>> GetCurrentAsyncV1(CancellationToken cancellationToken = default)
+        => await QueryCurrentPublishedPolls()
                     .ProjectToType<PollResponce>()
                     .ToListAsync(cancellationToken);
 
+    public async Task<IEnumerable<PollResponceV2>> GetCurrentAsyncV2(CancellationToken cancellationToken = default)
+        => await QueryCurrentPublishedPolls()
+                    .ProjectToType<PollResponceV2>()
+                    .ToListAsync(cancellationToken);
+
+    private IQueryable<Poll> QueryCurrentPublishedPolls()
+    {
+        return _context.Polls
+                            .Where(p => p.IsPublished && p.StartsAt <= DateOnly.FromDateTime(DateTime.UtcNow) && p.EndsAt >= DateOnly.FromDateTime(DateTime.UtcNow))
+                            .AsNoTracking();
+    }
+
     public async Task<Result<PollResponce>> GetAsync(int id, CancellationToken cancellationToken = default)
     {
-       var poll = await _context.Polls.FindAsync(id, cancellationToken);
-       return poll is not null 
-            ? Result.Success(poll.Adapt<PollResponce>()) 
-            : Result.Failure<PollResponce>(PollErrors.PollNotFound);
+        var poll = await _context.Polls.FindAsync(id, cancellationToken);
+        return poll is not null
+             ? Result.Success(poll.Adapt<PollResponce>())
+             : Result.Failure<PollResponce>(PollErrors.PollNotFound);
     }
 
     public async Task<Result<PollResponce>> AddAsync(PollRequest request, CancellationToken cancellationToken = default)
@@ -36,10 +46,10 @@ public class PollService(ApplicationDbContext context,
             return Result.Failure<PollResponce>(PollErrors.DuplicatedPollTitle);
 
         var newPoll = request.Adapt<Poll>();
-        
+
         await _context.Polls.AddAsync(newPoll, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
-        
+
         var responce = newPoll.Adapt<PollResponce>();
 
         return Result.Success(responce);
@@ -60,9 +70,9 @@ public class PollService(ApplicationDbContext context,
         currentPoll.Summary = request.Summary;
         currentPoll.StartsAt = request.StartsAt;
         currentPoll.EndsAt = request.EndsAt;
-        
+
         await _context.SaveChangesAsync(cancellationToken);
-        
+
         return Result.Success();
     }
 
@@ -75,7 +85,7 @@ public class PollService(ApplicationDbContext context,
 
         _context.Polls.Remove(poll);
         await _context.SaveChangesAsync(cancellationToken);
-        
+
         return Result.Success();
     }
 
@@ -88,7 +98,7 @@ public class PollService(ApplicationDbContext context,
         poll.IsPublished = !poll.IsPublished;
         await _context.SaveChangesAsync(cancellationToken);
 
-        if(poll.IsPublished && poll.StartsAt == DateOnly.FromDateTime(DateTime.UtcNow))
+        if (poll.IsPublished && poll.StartsAt == DateOnly.FromDateTime(DateTime.UtcNow))
         {
             BackgroundJob.Enqueue(() => _notificationService.SendNewPollsNotification(poll.Id));
         }

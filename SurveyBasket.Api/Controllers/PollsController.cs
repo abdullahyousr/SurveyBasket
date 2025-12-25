@@ -1,7 +1,14 @@
 ﻿
 
+using Asp.Versioning;
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace SurveyBasket.Api.Controllers;
+
+[ApiVersion(1,Deprecated = true)]
+[ApiVersion(2)]
 [Route("api/[controller]")]
+//[Route("api/v{v:apiVersion}/[controller]")]
 [ApiController]
 public class PollsController(IPollService pollService) : ControllerBase
 {
@@ -18,11 +25,25 @@ public class PollsController(IPollService pollService) : ControllerBase
     }
 
     [HttpGet]
+    [MapToApiVersion(1)]
     [Route("current")]
     [Authorize(Roles = DefaultRoles.Member)]
-    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
+    [EnableRateLimiting(RateLimiters.Concurrency)]
+    public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
     {
-        var pollsResponce = await _pollService.GetCurrentAsync(cancellationToken);
+        var pollsResponce = await _pollService.GetCurrentAsyncV1(cancellationToken);
+
+        return Ok(pollsResponce);
+    }
+
+    [HttpGet]
+    [MapToApiVersion(2)]
+    [Route("current")]
+    [Authorize(Roles = DefaultRoles.Member)]
+    [EnableRateLimiting(RateLimiters.Concurrency)]
+    public async Task<IActionResult> GetCurrentV2(CancellationToken cancellationToken)
+    {
+        var pollsResponce = await _pollService.GetCurrentAsyncV2(cancellationToken);
 
         return Ok(pollsResponce);
     }
