@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SurveyBasket.Api.Contracts.Roles;
 
 namespace SurveyBasket.Api.Controllers;
+
+[ApiVersion(1, Deprecated = true)]
+[ApiVersion(2)]
 [Route("api/[controller]")]
 [ApiController]
 public class RolesController(IRoleService roleService) : ControllerBase

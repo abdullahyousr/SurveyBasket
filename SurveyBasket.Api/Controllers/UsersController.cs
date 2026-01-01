@@ -1,7 +1,11 @@
-﻿using SurveyBasket.Api.Contracts.Users;
+﻿using Asp.Versioning;
+using SurveyBasket.Api.Contracts.Users;
 
 namespace SurveyBasket.Api.Controllers;
 
+
+[ApiVersion(1, Deprecated = true)]
+[ApiVersion(2)]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController(IUserService userService) : ControllerBase

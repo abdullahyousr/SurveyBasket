@@ -1,17 +1,20 @@
-﻿using FluentValidation.AspNetCore;
+﻿using Asp.Versioning;
+using FluentValidation.AspNetCore;
+using Hangfire;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using SurveyBasket.Api.Authentication;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using SurveyBasket.Api.Authentication;
+using SurveyBasket.Api.Health;
+using SurveyBasket.Api.Settings;
+using SurveyBasket.Api.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 using System.Text;
-using SurveyBasket.Api.Settings;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Hangfire;
-using SurveyBasket.Api.Health;
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
-using Asp.Versioning;
 
 namespace SurveyBasket.Api;
 
@@ -36,6 +39,21 @@ public static class DependencyInjection
 
         services.AddAuthconfig(configuration);
 
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new HeaderApiVersionReader("x-api-version");
+            options.ApiVersionReader = new MediaTypeApiVersionReader("api-version");
+            //options.ApiVersionReader = new QueryStringApiVersionReader("api-version");
+            //options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddApiExplorer(options =>
+        {
+           options.GroupNameFormat = "'v'V";
+           options.SubstituteApiVersionInUrl = true;
+        });
+        
         services
             .AddSwaggerServices()
             .AddMapsterConfig()
@@ -72,20 +90,6 @@ public static class DependencyInjection
         
         services.AddRateLimitingConfig();
 
-        services.AddApiVersioning(options =>
-        {
-            options.DefaultApiVersion = new ApiVersion(1);
-            options.AssumeDefaultVersionWhenUnspecified = true;
-            options.ReportApiVersions = true;
-            options.ApiVersionReader = new HeaderApiVersionReader("x-api-version");
-            options.ApiVersionReader = new MediaTypeApiVersionReader("api-version");
-            //options.ApiVersionReader = new QueryStringApiVersionReader("api-version");
-            //options.ApiVersionReader = new UrlSegmentApiVersionReader();
-        }).AddApiExplorer(options =>
-        {
-           options.GroupNameFormat = "'v'V";
-           options.SubstituteApiVersionInUrl = true;
-        });
 
         return services;
     }
@@ -165,7 +169,33 @@ public static class DependencyInjection
     private static IServiceCollection AddSwaggerServices(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            //    options.SwaggerDoc("v1", new OpenApiInfo
+            //    {
+            //        Version = "v1",
+            //        Title = "SurveyBasket API",
+            //        Description = "An ASP.NET Core Web API for managing Poll's Questions and answers",
+            //        TermsOfService = new Uri("https://example.com/terms"),
+            //        Contact = new OpenApiContact
+            //        {
+            //            Name = "Example Contact",
+            //            Url = new Uri("https://example.com/contact")
+            //        },
+            //        License = new OpenApiLicense
+            //        {
+            //            Name = "Abdullah Yousry",
+            //            Url = new Uri("https://example.com/license")
+            //        }
+            //    });
+
+            var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+            options.OperationFilter<SwaggerDefaultValues>();
+        });
+
+        services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
         return services;
     }

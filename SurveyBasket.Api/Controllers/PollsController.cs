@@ -2,6 +2,7 @@
 
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace SurveyBasket.Api.Controllers;
 
@@ -29,6 +30,7 @@ public class PollsController(IPollService pollService) : ControllerBase
     [Route("current")]
     [Authorize(Roles = DefaultRoles.Member)]
     [EnableRateLimiting(RateLimiters.Concurrency)]
+    [SwaggerIgnore]
     public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
     {
         var pollsResponce = await _pollService.GetCurrentAsyncV1(cancellationToken);

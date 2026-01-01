@@ -1,14 +1,31 @@
-﻿namespace SurveyBasket.Api.Controllers;
+﻿using Asp.Versioning;
+
+namespace SurveyBasket.Api.Controllers;
+
+[ApiVersion(1, Deprecated = true)]
+[ApiVersion(2)]
 [Route("[controller]")]
 [ApiController]
-public class AuthController(IAuthService authService) : ControllerBase
+[Produces("application/json")]
+public class AuthController(IAuthService authService, ILogger<AuthController> logger) : ControllerBase
 {
     private readonly IAuthService _authService = authService;
+    private readonly ILogger<AuthController> _logger = logger;
+
+    /// <summary>
+    /// Allow users to get JWT Tokens
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>return JWT Tokens if credentials were valid</returns>
 
     [HttpPost]
     [Route("")]
+    [ProducesResponseType(typeof(AuthResponce),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Login attempt for email: {Email} and {Password}", request.Email, request.Password);
         var authResult = await _authService.GetTokenAsync(request.Email, request.Password, cancellationToken);
 
         return authResult.IsSuccess
