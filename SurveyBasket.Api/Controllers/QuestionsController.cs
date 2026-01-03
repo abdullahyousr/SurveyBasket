@@ -61,7 +61,7 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
     }
 
     [HttpPut]
-    [Route("{id}/ToggleStatus")]
+    [Route("{id}/toggle-status")]
     [HasPermisssion(Permissions.UpdateQuestions)]
     public async Task<IActionResult> ToggleStatus([FromRoute] int pollId, [FromRoute] int id, CancellationToken cancellationToken)
     {

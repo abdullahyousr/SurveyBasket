@@ -7,6 +7,8 @@ global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 global using Microsoft.AspNetCore.Identity;
+global using System.ComponentModel.DataAnnotations;
+
 
 global using SurveyBasket.Api.Abstractions;
 global using SurveyBasket.Api.Entities;

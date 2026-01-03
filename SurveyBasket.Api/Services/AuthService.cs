@@ -189,7 +189,7 @@ public class AuthService(
 
         if (result.Succeeded)
         {
-            await _userManager.AddToRoleAsync(user, DefaultRoles.Member);
+            await _userManager.AddToRoleAsync(user, DefaultRoles.Member.Name);
             return Result.Success();
         }
         var error = result.Errors.First();
@@ -220,7 +220,7 @@ public class AuthService(
             return Result.Success();
 
         if (user.EmailConfirmed)
-            return Result.Failure(UserErrors.EmailNotConfirmed);
+            return Result.Failure(UserErrors.EmailNotConfirmed with { StatusCode = StatusCodes.Status400BadRequest});
 
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));

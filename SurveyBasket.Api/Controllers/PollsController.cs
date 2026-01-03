@@ -28,7 +28,7 @@ public class PollsController(IPollService pollService) : ControllerBase
     [HttpGet]
     [MapToApiVersion(1)]
     [Route("current")]
-    [Authorize(Roles = DefaultRoles.Member)]
+    [Authorize(Roles = DefaultRoles.Member.Name)]
     [EnableRateLimiting(RateLimiters.Concurrency)]
     [SwaggerIgnore]
     public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
@@ -41,7 +41,7 @@ public class PollsController(IPollService pollService) : ControllerBase
     [HttpGet]
     [MapToApiVersion(2)]
     [Route("current")]
-    [Authorize(Roles = DefaultRoles.Member)]
+    [Authorize(Roles = DefaultRoles.Member.Name)]
     [EnableRateLimiting(RateLimiters.Concurrency)]
     public async Task<IActionResult> GetCurrentV2(CancellationToken cancellationToken)
     {
@@ -100,7 +100,7 @@ public class PollsController(IPollService pollService) : ControllerBase
 
 
     [HttpPut]
-    [Route("{id}/togglePublish")]
+    [Route("{id}/toggle-publish")]
     [HasPermisssion(Permissions.UpdatePolls)]
     public async Task<IActionResult> TogglePublish([FromRoute] int id, CancellationToken cancellationToken)
     {

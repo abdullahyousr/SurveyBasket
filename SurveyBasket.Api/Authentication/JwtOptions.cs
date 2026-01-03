@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace SurveyBasket.Api.Authentication;
+﻿namespace SurveyBasket.Api.Authentication;
 
 public class JwtOptions
 {

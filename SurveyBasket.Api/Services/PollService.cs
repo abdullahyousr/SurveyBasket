@@ -65,12 +65,9 @@ public class PollService(ApplicationDbContext context,
         var isExistingTitle = await _context.Polls.AnyAsync(p => p.Title == request.Title && p.Id != id, cancellationToken);
         if (isExistingTitle)
             return Result.Failure<PollResponce>(PollErrors.DuplicatedPollTitle);
-
-        currentPoll.Title = request.Title;
-        currentPoll.Summary = request.Summary;
-        currentPoll.StartsAt = request.StartsAt;
-        currentPoll.EndsAt = request.EndsAt;
-
+        
+        currentPoll = request.Adapt(currentPoll);
+        
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

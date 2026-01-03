@@ -13,7 +13,7 @@ public class RoleClaimConfiguration : IEntityTypeConfiguration<IdentityRoleClaim
             adminClaims.Add(new IdentityRoleClaim<string>
             {
                 Id = i + 1,
-                RoleId = DefaultRoles.AdminRoleId,
+                RoleId = DefaultRoles.Admin.Id,
                 ClaimType = Permissions.Type,
                 ClaimValue = permissions[i]!
             });

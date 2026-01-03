@@ -59,7 +59,9 @@ public static class DependencyInjection
             .AddMapsterConfig()
             .AddFluentValidationConfig();
 
-        services.AddDatabaseConfig(configuration);
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ?? 
+        throw new InvalidOperationException("Connection String 'DefaultConnection' not found.");
+        services.AddDatabaseConfig(configuration, connectionString);
 
         services.AddScoped<IPollService, PollService>();
         services.AddScoped<IEmailSender, EmailSender>();
@@ -81,10 +83,14 @@ public static class DependencyInjection
 
         services.AddBackgroundJobsConfig(configuration);
 
-        services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+        //services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+        services.AddOptions<MailSettings>()
+            .BindConfiguration(nameof(MailSettings))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddHealthChecks()
-            .AddSqlServer(name: "database", connectionString: configuration.GetConnectionString("DefaultConnection")!)
+            .AddSqlServer(name: "database", connectionString: connectionString)
             .AddHangfire(options => { options.MinimumAvailableServers = 1; })
             .AddCheck<MailProviderHealthCheck>(name:"mail service");
         
@@ -218,10 +224,8 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddDatabaseConfig(this IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
-        throw new InvalidOperationException("Connection String 'DefaultConnection' not found.");
+    private static IServiceCollection AddDatabaseConfig(this IServiceCollection services, IConfiguration configuration, string connectionString)
+    {   
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
         return services;

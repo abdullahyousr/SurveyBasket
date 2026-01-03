@@ -16,7 +16,7 @@ public class UserService(UserManager<ApplicationUser> userManager,
                 on u.Id equals ur.UserId
                 join r in _context.Roles
                 on ur.RoleId equals r.Id into roles
-                where !roles.Any(x => x.Name == DefaultRoles.Member)
+                where !roles.Any(x => x.Name == DefaultRoles.Member.Name)
                 select new
                 {
                     u.Id,

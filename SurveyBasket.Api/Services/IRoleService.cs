@@ -4,7 +4,7 @@ namespace SurveyBasket.Api.Services;
 
 public interface IRoleService
 {
-    Task<IEnumerable<RoleResponce>> GetAllAsync(bool? includeDisabled = false, CancellationToken cancellationToken = default);
+    Task<IEnumerable<RoleResponce>> GetAllAsync(bool includeDisabled = false, CancellationToken cancellationToken = default);
     Task<Result<RoleDetailResponse>> GetAsync(string id);
     Task<Result<RoleDetailResponse>> AddRole(RoleRequest request);
     Task<Result> UpdateRole(string id, RoleRequest request);
